@@ -1,0 +1,12 @@
+# Secrets. Never commit.
+.env
+.env.local
+.env.*.local
+
+# Your browsing history and everything derived from it.
+data/
+artifacts/
+
+node_modules/
+.DS_Store
+*.log

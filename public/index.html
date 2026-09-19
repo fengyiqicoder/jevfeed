@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JevFeed</title>
+<style>
+  :root { --bg: #000; --fg: #e7e9ea; --muted: #71767b; --line: #2f3336; --accent: #1d9bf0; --green: #00ba7c; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Inter, sans-serif; font-size: 15px; }
+  a { color: inherit; text-decoration: none; }
+  #app { max-width: 600px; margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); min-height: 100vh; }
+  header { position: sticky; top: 0; z-index: 10; background: rgba(0,0,0,.75); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line); padding: 0 16px; height: 53px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: -.3px; } .logo b { color: var(--accent); }
+  .pill { font-size: 12px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; font-family: inherit; }
+  select.pill { appearance: none; padding-right: 8px; }
+  .pill:hover { background: #16181c; color: var(--fg); }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; }
+  .live i.busy { background: var(--accent); animation: pulse .8s infinite alternate; }
+  @keyframes pulse { to { opacity: .3; } }
+  .post { display: flex; color: inherit; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .15s; }
+  .post:hover { background: #080808; }
+  .post.opened { border-left: 2px solid var(--green); padding-left: 14px; }
+  .avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 18px; color: #fff; }
+  .body { flex: 1; min-width: 0; }
+  .meta { display: flex; gap: 6px; align-items: baseline; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; }
+  .meta b { color: var(--fg); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+  .meta .sep::before { content: '·'; }
+  .meta .src { overflow: hidden; text-overflow: ellipsis; }
+  .title { font-size: 16px; font-weight: 600; line-height: 1.35; margin: 4px 0 4px; }
+  .desc { color: #d1d4d6; line-height: 1.45; margin: 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .foot { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  .foot .kind { border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--fg); }
+  .foot .conf { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .foot .sig { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .alts { margin-top: 8px; display: none; } .post.debug .alts { display: block; }
+  .alt { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+  .alt .bar { flex: 0 0 60px; height: 4px; background: #222; border-radius: 2px; overflow: hidden; } .alt .bar i { display: block; height: 100%; background: var(--accent); }
+  .alt .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .loader { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+  .spinner { width: 22px; height: 22px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 14px; z-index: 30; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .screen { padding: 60px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .screen h1 { font-size: 30px; margin: 0; } .screen p { color: var(--muted); line-height: 1.5; margin: 0; }
+  .primary { background: var(--fg); color: #000; border: 0; border-radius: 999px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .primary.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+  .primary:disabled { opacity: .5; }
+  .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .stat div { border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 22px; } .stat span { font-size: 12px; color: var(--muted); }
+  #drawer { position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.6); display: none; }
+  #drawer.open { display: block; }
+  #drawer .panel { max-width: 600px; margin: 0 auto; background: #000; border-left: 1px solid var(--line); border-right: 1px solid var(--line); padding: 16px; overflow: auto; height: 100vh; }
+  #drawer h2 { margin: 0; font-size: 20px; } #drawer h3 { font-size: 13px; color: var(--muted); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: #16181c; border: 1px solid var(--line); }
+  .chip.neg { background: #2a1416; border-color: #4a2024; }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .row .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .row .a { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .row.open .a { color: var(--green); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Jev<b>Feed</b></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="live"><i id="dot"></i><span id="liveText" data-t="live">live</span></span>
+      <select class="pill" id="langSel" title="Feed language"></select>
+      <span class="pill" id="btnProfile" data-t="profile">Profile</span>
+    </div>
+  </header>
+
+  <div class="screen" id="onboard">
+    <h1>Jev<span style="color:var(--accent)">Feed</span></h1>
+    <p data-t="pitch1">A feed for one person. The seeds are your own browser history; the candidates are links you have not read yet, taken from the body of those pages. Jev reads every candidate at once and puts the best ten in your feed.</p>
+    <p data-t="pitch2">No buttons. How fast you scroll, how long you linger, what you open and how long you read it: the last 150 of those go, unchanged, into the next batch. Reach the bottom and ten more arrive. Your history is read locally and never uploaded.</p>
+    <div class="stat" id="stat"></div>
+    <select id="source" style="background:#16181c;color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px"></select>
+    <button class="primary" id="btnImport" data-t="import">Import this profile's history and start</button>
+    <button class="primary ghost" id="btnResume" data-t="resume" hidden>Continue</button>
+    <p id="onboardMsg" style="font-size:13px"></p>
+  </div>
+
+  <div id="feed" hidden></div>
+  <div class="loader" id="loader" hidden><div class="spinner"></div><span id="loaderText">picking the next batch…</span></div>
+</div>
+<div class="toast" id="toast"></div>
+<div id="drawer"><div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 data-t="drawerTitle">What the system thinks you are</h2><span class="pill" id="btnClose" data-t="close">Close</span></div>
+  <div id="drawerBody"></div>
+</div></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const api = async (path, body) => {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const toast = (msg) => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1300); };
+const hueFor = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
+
+// The feed language drives both the interface and the language summaries are written in.
+const STRINGS = {
+  en: {
+    profile: 'Profile', import: "Import this profile's history and start", resume: 'Continue',
+    pitch1: 'A feed for one person. The seeds are your own browser history; the candidates are links you have not read yet, taken from the body of those pages. Jev reads every candidate at once and puts the best ten in your feed.',
+    pitch2: 'No buttons. How fast you scroll, how long you linger, what you open and how long you read it: the last 150 of those go, unchanged, into the next batch. Reach the bottom and ten more arrive. Your history is read locally and never uploaded.',
+    seeds: 'seed pages', readable: 'things worth reading', links: 'candidate links',
+    live: 'live', ranking: 'Jev is ranking', picking: 'picking the next batch…', preparing: 'preparing candidates',
+    noHistory: 'No Chrome / Arc / Brave / Edge history file found.', noKey: 'TYPESAFE_API_KEY is missing; check .env.local.',
+    noSummarizer: 'OPENROUTER_API_KEY is not set, so candidates are not summarized and Jev sees titles only.',
+    importing: 'Reading…', imported: (n) => `Imported ${n} pages, fetching links`, importFailed: 'Import failed: ', retry: 'Retry',
+    read: (n) => `Read for ${n}s, Jev knows`, error: 'Error: ',
+    rank: (n) => `#${n} in batch`, prob: 'probability', from: (t) => `from “${t}”`,
+    ofPicked: (a, b) => `${a} ranked, ${b} shown`, events: (n) => `${n} events`,
+    drawerTitle: 'What the system thinks you are', likedTopics: 'Topics that hold you', likedDomains: 'Sources you return to',
+    disliked: 'What you scroll past', historyTopics: 'Topics from your browsing history', inventory: 'Inventory',
+    behaviour: (n) => `Last ${n} actions, sent as-is to Jev`, reset: 'Clear behaviour log', close: 'Close',
+    confirmReset: 'Clear every recorded action?', cleared: 'Cleared', none: 'nothing yet',
+    opened: 'opened', skipped: 'scrolled past', langSwitched: 'Language changed, rewriting summaries…',
+  },
+  zh: {
+    profile: '画像', import: '导入这个 profile 的历史，开始', resume: '继续上次',
+    pitch1: '一个人的信息流。种子来自你本机的浏览器历史，候选是这些页面正文里你没看过的超链接。Jev 一次看完全部候选，挑出最好的 10 条放进流。',
+    pitch2: '没有按钮。你滑得多快、在哪条上停了多久、点开了什么、读了多久，最近 150 条原样进入下一批的选择。滑到底就再推 10 条。历史只在本机读取，不上传。',
+    seeds: '种子页面', readable: '可读内容', links: '可推荐链接',
+    live: '实时', ranking: 'Jev 排序中', picking: '正在挑下一批…', preparing: '准备候选中',
+    noHistory: '没找到 Chrome / Arc / Brave / Edge 的历史文件。', noKey: '缺少 TYPESAFE_API_KEY，请检查 .env.local。',
+    noSummarizer: '未配置 OPENROUTER_API_KEY，候选不会先做摘要，Jev 只看标题。',
+    importing: '读取中…', imported: (n) => `导入 ${n} 个页面，正在抓链接`, importFailed: '导入失败：', retry: '重试',
+    read: (n) => `读了 ${n} 秒，Jev 已知道`, error: '出错：',
+    rank: (n) => `批内第 ${n}`, prob: '概率', from: (t) => `来自「${t}」`,
+    ofPicked: (a, b) => `${a} 条里选 ${b}`, events: (n) => `${n} 条记录`,
+    drawerTitle: '系统眼里的你', likedTopics: '吸引你的话题', likedDomains: '常去的来源',
+    disliked: '你会滑过去的', historyTopics: '来自浏览历史的主题', inventory: '库存',
+    behaviour: (n) => `最近 ${n} 条行为（原样进入下一次判断）`, reset: '清空行为记录', close: '关闭',
+    confirmReset: '清空所有行为记录？', cleared: '已清空', none: '还没有',
+    opened: '打开', skipped: '滑过', langSwitched: '语言已切换，正在重写摘要…',
+  },
+};
+let LANG = 'en';
+const T = (k, ...a) => { const v = (STRINGS[LANG] || STRINGS.en)[k]; return typeof v === 'function' ? v(...a) : v; };
+function applyLang() {
+  document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = T(el.dataset.t);
+}
+
+// ---- scroll speed (px/s), smoothed; sampled when an item leaves the viewport ----
+let lastY = window.scrollY, lastT = performance.now(), speed = 0;
+window.addEventListener('scroll', () => {
+  const t = performance.now(), dt = t - lastT;
+  if (dt > 0) { const v = Math.abs(window.scrollY - lastY) / dt * 1000; speed = speed * 0.5 + v * 0.5; }
+  lastY = window.scrollY; lastT = t;
+  if (window.innerHeight + window.scrollY > document.body.scrollHeight - 1200) fill();
+}, { passive: true });
+setInterval(() => { if (performance.now() - lastT > 250) speed *= 0.5; }, 250); // decay when idle
+
+// ---- posts: dwell in viewport, scroll speed at exit, opened + reading time ----
+const posts = new Map();
+let fetching = false, lastOpened = null;
+const BATCH = 10, REFILL_AT = 5; // ask for the next batch once fewer than this many unseen posts remain
+
+function render(d) {
+  // A real anchor: the browser opens the new tab natively, no popup blocking.
+  const el = document.createElement('a');
+  el.className = 'post';
+  el.href = d.url; el.target = '_blank'; el.rel = 'noopener';
+  el.dataset.id = d.id;
+  const h = hueFor(d.domain);
+  el.innerHTML = `
+    <div class="avatar" style="background:hsl(${h} 55% 40%)">${esc(d.domain[0].toUpperCase())}</div>
+    <div class="body">
+      <div class="meta"><b>${esc(d.domain)}</b><span class="sep"></span><span class="src">${esc(T('from', d.foundOn || d.foundOnUrl || ''))}</span></div>
+      <div class="title">${esc(d.title || d.anchor)}</div>
+      <p class="desc">${esc(d.summary || d.description || d.anchor || '')}</p>
+      <div class="foot">${d.kindLabel ? `<span class="kind">${esc(d.kindLabel)}</span>` : ''}<span>${esc(T('rank', d.rank))}</span><span>${esc(T('prob'))} <span class="conf">${(d.probability*100).toFixed(1)}%</span></span><span class="sig"></span></div>
+    </div>`;
+  const p = { data: d, el, dwell: 0, visible: false, acted: false, exitSpeed: null, opened: false, openedAt: null };
+  el.addEventListener('click', () => opened(p)); // default navigation proceeds
+  posts.set(d.id, p);
+  observer.observe(el);
+  return el;
+}
+
+const dwellOf = (p) => Math.round(p.dwell);
+const send = (p, action, extra = {}) => { p.acted = true; return api('/api/feedback', { id: p.data.id, action, dwellMs: dwellOf(p), ...extra }).catch(() => {}); };
+const showSig = (p) => { p.el.querySelector('.sig').textContent = `${(p.dwell/1000).toFixed(1)}s · ${Math.round(p.exitSpeed ?? speed)}px/s${p.opened ? ' · 已打开' : ''}`; };
+
+// Which posts are on screen at all. Several fit at once, so this alone is not attention.
+const observer = new IntersectionObserver((entries) => {
+  for (const en of entries) {
+    const p = posts.get(Number(en.target.dataset.id));
+    if (!p) continue;
+    p.visible = en.isIntersecting;
+    // Left through the top = scrolled past. Leaving through the bottom (scrolling back up) is not.
+    if (!en.isIntersecting && en.boundingClientRect.bottom < 0 && (p.dwell > 0 || p.opened) && !p.acted) {
+      p.exitSpeed = Math.round(speed);
+      showSig(p);
+      send(p, p.opened ? 'open' : 'skip', { scrollPxs: p.exitSpeed });
+    }
+  }
+}, { threshold: 0.01 });
+
+// Attention goes to the one post nearest the middle of the screen, not to everything on it.
+let focused = null, tickAt = performance.now();
+function tick() {
+  const t = performance.now(), dt = t - tickAt;
+  tickAt = t;
+  if (document.visibilityState !== 'visible') { focused = null; return; }
+  const mid = window.innerHeight / 2;
+  let best = null, bestDist = Infinity;
+  for (const p of posts.values()) {
+    if (!p.visible) continue;
+    const r = p.el.getBoundingClientRect();
+    const d = Math.abs((r.top + r.bottom) / 2 - mid);
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  focused = best;
+  if (best && dt > 0 && dt < 2000) {
+    best.dwell += dt;
+    showSig(best);
+    // A post already scrolled past keeps its recorded dwell; only re-send while it is still in play.
+    if (best.acted && best.opened) send(best, 'open');
+  }
+}
+setInterval(tick, 200);
+
+function opened(p) {
+  p.opened = true; p.openedAt = performance.now(); lastOpened = p;
+  p.el.classList.add('opened');
+  send(p, 'open');
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && lastOpened?.openedAt) {
+    const openDwellMs = Math.round(performance.now() - lastOpened.openedAt);
+    lastOpened.openedAt = null;
+    send(lastOpened, 'open', { openDwellMs });
+    toast(T('read', Math.round(openDwellMs / 1000)));
+    lastOpened = null;
+  }
+});
+
+// ---- feed loading: one Jev call ranks every unseen link; the top BATCH land in the feed ----
+async function fill() {
+  if (fetching) return;
+  // Still below the fold. Geometry, not dwell: a hidden tab accrues no dwell.
+  const unseen = [...posts.values()].filter((p) => p.el.getBoundingClientRect().top >= window.innerHeight).length;
+  if (unseen >= REFILL_AT) return;
+  fetching = true;
+  $('#dot').classList.add('busy'); $('#liveText').textContent = T('ranking');
+  if (!posts.size) $('#loader').hidden = false;
+  try {
+    const d = await api(`/api/batch?n=${BATCH}`);
+    if (d.pending) { $('#liveText').textContent = `${T('preparing')} (${d.stats.readable ?? d.stats.ready})`; setTimeout(() => { fetching = false; fill(); }, 2000); return; }
+    for (const item of d.items) $('#feed').appendChild(render(item));
+    $('#liveText').textContent = `${T('ofPicked', d.offered, d.items.length)} · ${d.latencyMs}ms · ${T('events', d.logSize)}`;
+  } catch (e) { toast(T('error') + e.message); $('#liveText').textContent = T('error').replace(/[:：]\s*$/, ''); }
+  $('#loader').hidden = true; $('#dot').classList.remove('busy');
+  fetching = false;
+}
+
+// keyboard: j/↓ next, k/↑ previous, enter open
+const visible = () => focused;
+document.addEventListener('keydown', (e) => {
+  if (!$('#onboard').hidden) return;
+  const p = visible();
+  if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); (p?.el.nextElementSibling || p?.el)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); p?.el.previousElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  else if (p && (e.key === 'Enter' || e.key === 'o')) p.el.click();
+});
+
+
+$('#btnProfile').onclick = async () => {
+  const p = await api('/api/profile');
+  const chips = (arr, cls = '') => arr.length ? arr.map(x => `<span class="chip ${cls}">${esc(x)}</span>`).join('') : `<span class="chip" style="opacity:.5">${esc(T('none'))}</span>`;
+  $('#drawerBody').innerHTML = `
+    <h3>${esc(T('likedTopics'))}</h3><div class="chips">${chips(p.profile.likedTopics)}</div>
+    <h3>${esc(T('likedDomains'))}</h3><div class="chips">${chips(p.profile.likedDomains)}</div>
+    <h3>${esc(T('disliked'))}</h3><div class="chips">${chips([...p.profile.dislikedTopics, ...p.profile.dislikedDomains], 'neg')}</div>
+    <h3>${esc(T('historyTopics'))}</h3><div class="chips">${chips(p.profile.recentHistoryTopics)}</div>
+    <h3>${esc(T('inventory'))}</h3><div class="chips"><span class="chip">${p.seedsCrawled}/${p.seeds} ${esc(T('seeds'))}</span><span class="chip">${p.readable ?? p.ready} ${esc(T('readable'))}</span><span class="chip">${esc(T('events', p.events))}</span></div>
+    <h3>${esc(T('behaviour', p.recent.length))}</h3>
+    ${p.recent.slice().reverse().map(e => `<div class="row ${e.action}"><span class="t">${esc(e.title || e.url)}</span><span class="a">${esc(e.action === 'open' ? T('opened') : T('skipped'))} · ${((e.dwell_ms||0)/1000).toFixed(1)}s${e.scroll_pxs != null ? ' · ' + e.scroll_pxs + 'px/s' : ''}${e.open_dwell_ms ? ' · ' + Math.round(e.open_dwell_ms/1000) + 's' : ''}</span></div>`).join('')}
+    <button class="primary ghost" style="margin-top:20px;width:100%" id="btnReset">${esc(T('reset'))}</button>`;
+  $('#btnReset').onclick = async () => { if (confirm(T('confirmReset'))) { await api('/api/reset-taste', {}); toast(T('cleared')); $('#drawer').classList.remove('open'); } };
+  $('#drawer').classList.add('open');
+};
+$('#btnClose').onclick = () => $('#drawer').classList.remove('open');
+$('#drawer').onclick = (e) => { if (e.target.id === 'drawer') $('#drawer').classList.remove('open'); };
+
+async function refreshStat() {
+  const s = await api('/api/status');
+  if (s.lang && s.lang !== LANG) { LANG = s.lang; applyLang(); }
+  $('#langSel').innerHTML = Object.entries(s.langs || { en: 'English' })
+    .map(([k, v]) => `<option value="${esc(k)}"${k === LANG ? ' selected' : ''}>${esc(v)}</option>`).join('');
+  $('#loaderText').textContent = T('picking');
+  $('#stat').innerHTML = `<div><b>${s.seeds}</b><span>${esc(T('seeds'))}</span></div>`
+    + `<div><b>${s.summarizer ? s.readable : s.ready}</b><span>${esc(T(s.summarizer ? 'readable' : 'links'))}</span></div>`;
+  $('#btnResume').hidden = !(s.seeds > 0);
+  $('#source').innerHTML = (s.sources || [])
+    .map((x) => `<option value="${esc(x.id)}">${esc(x.browser)} · ${esc(x.name)} (${esc(x.profile)})</option>`).join('');
+  $('#onboardMsg').textContent = !s.sources?.length ? T('noHistory') : !s.hasKey ? T('noKey') : !s.summarizer ? T('noSummarizer') : '';
+}
+function start() { $('#onboard').hidden = true; $('#feed').hidden = false; fill(); }
+$('#btnImport').onclick = async () => {
+  const b = $('#btnImport'); b.disabled = true; b.textContent = T('importing');
+  try { const r = await api('/api/import-history', { source: $('#source').value }); toast(T('imported', r.imported)); start(); }
+  catch (e) { $('#onboardMsg').textContent = T('importFailed') + e.message; b.disabled = false; b.textContent = T('retry'); }
+};
+$('#btnResume').onclick = start;
+$('#langSel').onchange = async (e) => {
+  await api('/api/settings', { lang: e.target.value });
+  LANG = e.target.value;
+  applyLang();
+  await refreshStat();
+  toast(T('langSwitched'));
+};
+applyLang();
+refreshStat();
+</script>
+</body>
+</html>

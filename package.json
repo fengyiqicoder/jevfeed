@@ -1,0 +1,10 @@
+{
+  "name": "jevfeed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings src/server.mjs",
+    "test": "node --no-warnings --test src/*.test.mjs"
+  }
+}

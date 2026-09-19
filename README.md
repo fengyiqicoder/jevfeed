@@ -4,7 +4,10 @@ An infinite feed built from your own browser history, ranked in real time by
 [TypeSafe's Jev](https://docs.typesafe.ai/). No likes, no follows, no accounts.
 Every link in it is a real page that someone linked to from something you already read.
 
-<!-- DEMO -->
+[![JevFeed scrolling through a ranked batch](docs/media/demo.png)](docs/media/demo.mp4)
+
+*Real output: fifty links pulled from pages in one browser history, each summarized and
+labelled, ranked by Jev, top ten per batch. [Watch the clip](docs/media/demo.mp4).*
 
 ## How it works
 

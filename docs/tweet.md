@@ -1,50 +1,31 @@
 # Launch tweet
 
-## Main tweet (attach docs/media/demo.mp4)
+Attach `docs/media/demo.mp4` to the main tweet. Post the three replies as a thread underneath.
 
-I built a feed with no likes, no follows and no accounts.
+## Main tweet
 
-It reads my own browser history, pulls the links out of the pages I already read,
-and hands all of them to a decision model at once. It returns a probability over
-every candidate. The top ten become the next batch. ~500ms.
+No likes, no follows, no accounts, no buttons. So what does it run on? JevFeed is an infinite feed from your browser history: 200 recent pages seed it, their links are candidates, how you scroll and what you open is the only feedback. github.com/fengyiqicoder/jevfeed
 
-The only thing it learns from is how long I linger and what I open.
+## Replies
 
-github.com/fengyiqicoder/jevfeed
+Seconds on screen is not attention: credit every visible card and they all tie. So dwell goes every 200 ms to the one card nearest screen centre. Scrolling past logs its exit px/s; opening logs your read time. The last 150 events go straight into the next request.
 
-## Reply 1
+Ranking is one request to Jev, TypeSafe's hosted model, with your own API key: up to ~250 unseen links go in and a probability over all of them comes back. The top 10 land in the feed, max 3 per domain. In the demo that was 66 links ranked in 464 ms.
 
-Why links and not generated text: a generated feed optimized on dwell time
-converges on a mirror of your own habits, and nothing in it has a source you can
-check. Every item here was put in a real page by a real person, with a URL.
-
-## Reply 2
-
-How a batch is built:
-
-history → links in the page body (via Jina Reader) → one sentence + a page kind
-from a cheap model, which drops tools, shopping pages and listings → all
-remaining candidates to Jev in one request → top 10.
-
-Runs locally. History never leaves the machine.
-
-## Reply 3
-
-The detail that surprised me: crediting dwell time to every post on screen is
-useless. Five cards fit at once, so they all get the same number. Dwell only
-means something when it goes to the one post nearest the middle of the screen.
-
-MIT licensed, Node 22, bring your own keys.
+What leaves the machine: not the History file. Seed pages, pages you open and every candidate get fetched, via Jina when needed; candidate URLs also go to OpenRouter for summaries. Jev gets titles (40 from history), domains, kinds, summaries and scroll numbers, never a URL.
 
 ---
 
 # 中文版
 
-我做了一个没有点赞、没有关注、没有账号的信息流。
+## 主推
 
-它读我自己的浏览器历史，把我已经读过的那些页面正文里的链接抽出来，一次性全交给决策模型。
-它返回对每个候选的概率，前十条进入下一批，大约 500 毫秒。
+没有点赞、没有关注、没有账号、没有按钮。那它靠什么运转？JevFeed 是拿你自己的浏览器历史做出来的无限信息流：最近访问的 200 个页面是种子，正文里的链接是候选，你怎么滚动、点开什么，是唯一的反馈。github.com/fengyiqicoder/jevfeed
 
-它唯一学习的东西，是我在哪条上停留、点开了什么。
+## 回复
 
-github.com/fengyiqicoder/jevfeed
+一张卡在屏幕上待了几秒，不代表你在看它：给屏幕上每张卡都记时间，它们拿到的数字一模一样。所以每 200 ms 只给离屏幕中线最近的那一张记停留时间；卡片从顶部滚出时，记下那一刻的滚动速度（px/s）；点开后切回来，算你读了几秒。最近 150 条事件直接进下一次请求。
+
+排序只发一次请求：最多约 250 条没看过的链接一起发给 Jev（TypeSafe 的托管模型，要用你自己的 key），它返回覆盖全部候选的概率分布，取前 10 条，每个域名最多 3 条。Demo 里 66 条排完用了 464 ms。
+
+哪些数据会离开你的电脑：History 文件本身不上传。200 个种子页、你点开的页面、每条候选都会被抓取（必要时经 Jina），候选页 URL 还会发给 OpenRouter 做摘要。Jev 拿到的是标题（含 40 条历史标题）、域名、类型、摘要和滚动数据，没有 URL。
